@@ -1,0 +1,179 @@
+<!--
+Arabic Maqām Builder (53-EDO)
+
+This tool implements Arabic maqām tuning using a 53-tone equal temperament
+(Turkish comma system). Musical structures (ajnas, maqamat) are represented
+in comma-space and rendered via the Web Audio API.
+
+Author: Adonis Abboud
+Focus: music theory + audio engineering + cultural tuning systems
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Arabic Maqām Builder (53-EDO)</title>
+
+
+  <link rel="stylesheet" href="styles.css" />
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+  <h2>Arabic Maqām Builder (53-EDO)</h2>
+  <p class="muted">
+    Interactive exploration of Arabic maqāmāt using Turkish comma tuning (53-EDO)
+  </p>
+
+
+    <p class="muted" style="max-width:1200px;">
+      Uses a 53-EDO Turkish comma model:
+      <b>whole tone = 9 commas</b>,
+      <b>diatonic semitone (E–F, B–C) = 4 commas</b>,
+      flats/sharps = 4 commas.
+      Rāst half-flats are fingerboard midpoints (½-comma steps allowed).
+      Reference: <span class="mono">C4 = 260.77 Hz</span>.
+    </p>
+
+
+
+  <div class="card">
+    <div class="row">
+     <button id="enableBtn" class="btn primary"><span class="statusDot" id="audioDot"></span>Enable sound</button>
+      <button id="stopBtn" class="btn danger">Stop All</button>
+
+      <label class="row" style="gap:10px;">
+        <span><b>Maqām</b></span>
+        <select id="maqamSel"></select>
+      </label>
+
+      <label class="row" style="gap:10px;">
+        <span><b>Upper jins</b></span>
+        <select id="upperSel"></select>
+      </label>
+
+      <label class="row" style="gap:10px;">
+        <span><b>Volume</b></span>
+        <input id="vol" type="range" min="0" max="1" step="0.01" value="0.35" />
+        <span id="volVal" class="mono">0.35</span>
+      </label>
+
+      <label class="row" style="gap:10px;">
+        <span><b>Sound type</b></span>
+        <select id="waveSel">
+          <option value="sine">sine (pure)</option>
+          <option value="harmonic">sine + harmonics</option>
+        </select>
+      </label>
+
+      <label class="row" style="gap:10px;">
+        <span><b>Mode</b></span>
+        <select id="modeSel">
+          <option value="pluck">Pluck (short)</option>
+          <option value="hold">Hold (continuous while pressed)</option>
+        </select>
+      </label>
+
+      <label class="row" style="gap:10px;">
+        <span class="tag">Latch</span>
+        <input id="latch" type="checkbox" />
+        <span class="muted">If ON: click toggles continuous</span>
+      </label>
+    </div>
+
+    <label class="row" style="gap:10px;">
+      <span class="tag">Theme</span>
+      <input id="themeToggle" type="checkbox" />
+      <span class="muted">Dark</span>
+    </label>
+
+
+    <div class="sep"></div>
+
+    <div class="twoCol">
+      <div>
+        <div class="row" style="gap:12px;">
+          <span class="tag">Drones</span>
+          <button id="drone1" class="btn">Drone (tonic)</button>
+          <button id="drone2" class="btn">Drone (upper base)</button>
+
+          <label class="row" style="gap:10px;">
+            <span><b>Drone vol</b></span>
+            <input id="droneVol" type="range" min="0" max="1" step="0.01" value="0.22" />
+            <span id="droneVolVal" class="mono">0.22</span>
+          </label>
+        </div>
+        <p class="muted" style="margin-top:8px;">
+          Use drones to hear beating: especially compare Rāst vs Bayātī vs Sīkāh half-flats.
+        </p>
+      </div>
+
+      <div class="muted">
+        <div class="row" style="gap:10px;">
+          <span class="tag">Keyboard</span>
+          <span>
+            Best in <b>Hold</b> mode. Keys (scale degrees):
+            <span class="kbd">A S D F G H J</span> (+ octave: <span class="kbd">K</span>) = middle •
+            <span class="kbd">Z X C V B N M</span> = bass •
+            <span class="kbd">Q W E R T Y U</span> = high. Space = Stop.
+          </span>
+        </div>
+        <p style="margin-top:8px;">
+          Tip: click any note button first so the page has focus, then try keyboard.
+        </p>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row muted">
+      <span><b>Legend</b>:</span>
+      <span><span class="swatch sw1"></span> lower jins</span>
+      <span><span class="swatch sw2"></span> upper jins</span>
+      <span class="muted">• dashed = microtone (half-flat) • blue outline = tonic • green outline = held</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Transposition layer (global tonic shift in 53-EDO) -->
+    <div class="row" style="gap:12px; align-items:flex-start; margin-top:6px;">
+      <span class="tag">Transposition</span>
+      <div class="muted" style="max-width:900px;">
+        Choose a <b>tonic</b> (global shift in 53-EDO commas). This happens <b>before</b> any maqām/jins display/playback.
+        Changing tonic stops currently-held notes (avoids pitch jumps).
+      </div>
+    </div>
+
+    <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
+      <label class="mono" for="tonicSel" style="min-width:120px;">Tonic</label>
+      <select id="tonicSel" style="min-width:260px;"></select>
+      <span id="tonicInfo" class="muted mono"></span>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="jinsLabel">
+      <span class="tag">Scale</span>
+      <span id="scaleText">Full scale (1 octave)</span>
+    </div>
+    <div id="gridScale" class="grid"></div>
+
+    <div class="sep"></div>
+
+    <div id="jins1Label" class="jinsLabel">
+      <span class="swatch sw1"></span>
+      <span id="j1Text">Lower jins</span>
+    </div>
+    <div id="grid1" class="grid"></div>
+
+    <div class="sep"></div>
+
+    <div id="jins2Label" class="jinsLabel">
+      <span class="swatch sw2"></span>
+      <span id="j2Text">Upper jins</span>
+    </div>
+    <div id="grid2" class="grid"></div>
+  </div>
+</body>
+</html>
