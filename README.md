@@ -8,7 +8,7 @@ This project focuses on **accurate microtonal tuning**, **clear maqām structure
 🎧 Live demo: https://adonisabboud.github.io/maqam-builder-53edo/
 
 
-> ⚠️ **Keyboard input note**  
+> ⚠️ **Keyboard input notice**  
 > Keyboard playing requires the system keyboard layout to be set to **English (Latin)**.  
 > Non-Latin layouts (e.g. Arabic or Hebrew) will prevent key detection in the browser.
 
@@ -120,32 +120,9 @@ Simply open `index.html` in a modern browser
 ```bash
 python -m http.server
 Then navigate to http://localhost:8000.
-
-
-📌 Status
-This is an active exploratory project focused on:
-
-musical correctness
-
-clarity of interaction
-
-expressive microtonal playback
-
-Future directions may include:
-
-alternate tuning systems
-
-MIDI / MPE input
-
-notation export
-
-additional maqām families
 ```
 ## Project Scope
 This project focuses on accurate representation of Arabic maqām theory, clear and expressive user interaction, and perceptually meaningful microtonal playback. It is designed as an exploratory instrument rather than a fixed composition tool.
-
-
-
 
 👤 Author
 Adonis Abboud
