@@ -4,6 +4,10 @@ An interactive web-based instrument for exploring Arabic maqāmāt using a 53-to
 
 This project focuses on **accurate microtonal tuning**, **clear maqām structure**, and **playable interaction**, allowing musicians, researchers, and developers to hear and experiment with Arabic melodic systems directly in the browser.
 
+## Demo
+🎧 Live demo: https://adonisabboud.github.io/maqam-builder-53edo/
+
+
 ## 🙏 Acknowledgements
 
 The tuning logic and conceptual approach to 53-EDO comma usage in this project are derived from the teachings of **Mr. Anwar Hariri**, particularly his educational material on Arabic maqām intonation theory shared on YouTube - http://www.youtube.com/@anwarhariri.
