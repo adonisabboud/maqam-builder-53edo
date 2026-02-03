@@ -124,6 +124,130 @@ Then navigate to http://localhost:8000.
 ## Project Scope
 This project focuses on accurate representation of Arabic maqām theory, clear and expressive user interaction, and perceptually meaningful microtonal playback. It is designed as an exploratory instrument rather than a fixed composition tool.
 
+🎼 Music Theory & Tuning (For Music Theory lovers )
+53-EDO Turkish Comma System
+
+This project models Arabic maqāmāt using 53-tone equal temperament (53-EDO), also known as the Turkish comma system.
+The octave is divided into 53 equal logarithmic steps, providing sufficient resolution to represent classical Arabic and Ottoman microtonal intervals.
+
+Key properties:
+
+1 octave = 53 commas
+
+1 comma = 2^(1/53) frequency ratio
+
+Whole tone ≈ 9 commas
+
+Diatonic semitone (E–F, B–C) ≈ 4 commas
+
+Half-flat notes (♭½) are modeled as midpoints between scale degrees (½-comma precision)
+
+## 🎻 Fingerboard Geometry, Midpoints & Microtonal Intonation
+
+### 1. Pitch on a String (Physical Law)
+
+For a stretched string at fixed tension and mass density, frequency is inversely proportional to vibrating length (Mersenne’s laws):
+f ∝ 1 / L
+
+Where:
+- **f** = frequency  
+- **L** = vibrating string length  
+
+This implies:
+- halving the string length doubles the frequency  
+- the relationship is **inverse**, not linear  
+
+---
+
+### 2. What “Halfway on the Fingerboard” Actually Means
+
+When a player stops a string between two notes (e.g. **D** and **F**), the *physical midpoint* refers to an average in **string length**, not frequency.
+
+If the string lengths corresponding to D and F are `L_D` and `L_F`, then the midpoint position is:
+L_mid = (L_D + L_F) / 2
+
+This midpoint exists in **length space**, not pitch space.
+
+---
+
+### 3. Converting Midpoint Length to Frequency
+
+Because frequency is inversely proportional to length:
+f_mid ∝ 1 / L_mid
+= 2 / (L_D + L_F)
+Substituting `L ∝ 1 / f`:
+
+This is exactly the **harmonic mean** of the two frequencies.
+
+---
+
+## 🎼 Application to Arabic Maqām Intonation
+
+### Reference System
+
+- Tuning grid: **53-EDO Turkish comma system**
+- One comma ratio:
+
+2^(1/53)
+
+- Reference pitch:
+
+A4 = 440 Hz
+
+- Derived:
+
+C4 = 260.7716 Hz
+
+---
+
+### Rāst Half-Flat (Fingerboard Midpoint)
+
+Let:
+- `D4 = 293.3449 Hz`
+- `F4 = 347.7091 Hz`
+
+The Rāst half-flat (**E♭½ Rāst**) is defined as the **fingerboard midpoint** between D and F:
+
+E♭½_Rāst = 2 / (1/D4 + 1/F4)
+= 318.2218 Hz
+
+### Bayātī and Sīkāh as Deviations from Rāst
+
+Bayātī and Sīkāh do **not** redefine the midpoint — they **deviate from it**.
+
+A half Turkish comma corresponds to a multiplicative factor:
+
+k = 2^(0.5 / 53) ≈ 1.00656055
+#### Bayātī (Lowered Midpoint)
+
+E♭½_Bayātī = E♭½_Rāst / k
+= 316.1477 Hz
+
+
+This models the darker, more grounded Bayātī color.
+
+---
+
+#### Sīkāh (Raised Midpoint)
+
+E♭½_Sīkāh = E♭½_Rāst × k
+= 320.3095 Hz
+
+
+
+This produces the bright, tense leading quality characteristic of Sīkāh.
+
+---
+
+### Summary Table
+
+| Context | Definition | Frequency (Hz) |
+|-------|------------|----------------|
+| Rāst | fingerboard midpoint (harmonic mean) | 318.2218 |
+| Bayātī | Rāst − ½ comma | 316.1477 |
+| Sīkāh | Rāst + ½ comma | 320.3095 |
+
+
 👤 Author
 Adonis Abboud
 Music theory • Audio engineering • Microtonal systems
