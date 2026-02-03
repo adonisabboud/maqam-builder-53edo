@@ -75,6 +75,29 @@
       .replace("Eb", "E♭");
   }
 
+    // ==============================
+    // Solfège display (C D E F G A B -> Do Re Mi Fa Sol La Si)
+    // ==============================
+    const SOLFEGE = {
+      C: "Do",
+      D: "Re",
+      E: "Mi",
+      F: "Fa",
+      G: "Sol",
+      A: "La",
+      B: "Si",
+    };
+
+    function toSolfege(label){
+      // Converts note letters anywhere in the label, keeping accidentals and octave numbers
+      // Examples:
+      // "C4" -> "Do4"
+      // "E♭½ (Bayātī)4" -> "Mi♭½ (Bayātī)4"
+      // "G♭" -> "Sol♭"
+      return label.replace(/\b([A-G])(?=(?:[♭♯]|♭½|½)?\d?\b)/g, (_, p1) => SOLFEGE[p1] || p1);
+    }
+
+
   // ==============================
   // 2) JINS DEFINITIONS
   // ==============================
@@ -339,7 +362,7 @@
 
     const b = document.createElement('button');
     b.className = "btn small " + (group === 1 ? "j1" : "j2");
-    b.textContent = noteObj.label;
+    b.textContent = toSolfege(noteObj.label);
     if (noteObj.isTonic) b.classList.add("tonic");
     if (noteObj.isMicro) b.classList.add("micro");
 
@@ -420,8 +443,10 @@
         if (abs < -53 || abs > 159) continue;
         const octaveLabel = 4 + sh;
         const baseName = (group === "L") ? MAQAM[maqamSel.value].tonicName : upperBaseName(MAQAM[maqamSel.value]);
-        const label = prettyName(`${(defs.labels[i].startsWith("T") ? baseName : defs.labels[i])}${octaveLabel}`);
+        const label = toSolfege(prettyName(`${(defs.labels[i].startsWith("T") ? baseName : defs.labels[i])}${octaveLabel}`));
         const noteKey = `${group}:${jinsName}:${i}:${sh}`;
+        // Skip raw comma markers (pure numbers)
+        //if (/^\d+(\.\d+)?$/.test(label)) continue;
         res.push({
           label,
           absCommas: abs,
@@ -451,7 +476,7 @@
     for (const o of opts){
       const opt = document.createElement('option');
       opt.value = String(o.abs);
-      opt.textContent = o.name;
+      opt.textContent = toSolfege(prettyName(o.name));
       tonicSel.appendChild(opt);
     }
     tonicSel.value = "0";
@@ -538,7 +563,7 @@
 
       return absList.map((abs, i) => ({
         absCommas: abs,
-        label: labelFromAbs(abs),
+        label: toSolfege(labelFromAbs(abs)),
         isTonic: i === 0,
         isMicro: labelFromAbs(abs).includes("½"),
         noteKey: `S:Saba:${upperJ}:${i}:${abs.toFixed(3)}`
