@@ -64,7 +64,7 @@ The full scale is derived dynamically from these components.
 
 ---
 
-🎹 How to Use the Keyboard to play music.
+# 🎹 How to Use the Keyboard to play music.
 
 This "Arabic Piano" is designed to be playable immediately, even for users without a technical background.
 
