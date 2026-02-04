@@ -64,19 +64,92 @@ The full scale is derived dynamically from these components.
 
 ---
 
-## 🎛 Features
+🎹 How to Use the Keyboard to play music.
 
-- Interactive note grid (scale, lower jins, upper jins)
-- Global transposition in 53-EDO comma space
-- Keyboard input (three octaves)
-- Pluck and hold performance modes
-- Latch mode for sustained tones
-- Tonic and upper-base drones
-- Microtone visualization (half-flats highlighted)
-- Dark / light theme with system preference detection
-- Fully client-side (no backend)
+This "Arabic Piano" is designed to be playable immediately, even for users without a technical background.
 
----
+1️⃣ Enable Audio
+
+Click “Audio Enabled” at the top of the page.
+Browsers require a user gesture before audio can start.
+
+2️⃣ Choose a Maqām
+
+Use the Maqām selector to choose a maqām (e.g. Rāst, Bayātī, Sīkāh, Ḥijāz, Ṣabā).
+Each maqām is built from authentic jins structures and microtonal intervals.
+
+You can also select the upper jins to explore maqām modulation.
+
+3️⃣ Choose a Tonic (Transposition)
+
+Use the Tonic selector to transpose the entire instrument.
+This applies a global shift in 53-EDO commas and does not distort interval relationships.
+
+Changing the tonic automatically stops any currently held notes to avoid pitch jumps.
+
+4️⃣ Select Sound Type
+
+You can choose how the instrument sounds:
+
+Pure sine — clean, analytical tone (good for studying intonation)
+
+Sine + harmonics — richer, more instrument-like tone (closer to real strings)
+
+This affects all notes and drones in real time.
+
+5️⃣ Play Notes
+
+You can play notes in two ways:
+
+🖱️ On-screen buttons
+
+Click any note button to hear it.
+Microtonal notes (half-flats) are clearly labeled.
+
+⌨️ Computer keyboard (English layout required)
+
+The keyboard is mapped like a piano:
+
+Middle register: A S D F G H J K
+
+Lower register: Z X C V B N M
+
+Upper register: Q W E R T Y U
+
+Tip: When playing a scale, start from A (middle register tonic) and move right.
+
+⚠️ Important: The keyboard must be set to English.
+Non-Latin layouts will not trigger key events correctly.
+
+6️⃣ Playing Modes
+
+Pluck (short): notes decay naturally after being triggered
+
+Hold: notes sustain while the key/button is held
+
+Latch: clicking a note toggles it on/off (useful for drones or chords)
+
+7️⃣ Drones
+
+You can enable:
+
+Tonic drone
+
+Upper jins base drone
+
+Drones are especially useful for:
+
+Hearing beating
+
+Comparing Rāst vs Bayātī vs Sīkāh half-flats
+
+Studying maqām color and stability
+
+Adjust drone volume independently from the main output.
+
+8️⃣ Stopping All Sound
+
+Press Space or click “Stop All” to immediately silence all notes and drones.
 
 ## 🔊 Audio Engine
 
