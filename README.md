@@ -4,6 +4,8 @@ An interactive web-based instrument for exploring Arabic maqāmāt using a 53-to
 
 This project focuses on **accurate microtonal tuning**, **clear maqām structure**, and **playable interaction**, allowing musicians, researchers, and developers to hear and experiment with Arabic melodic systems directly in the browser.
 
+Features a **Qanun-style string instrument** interface, **solfège note display**, multiple timbres (including a realistic Qanun pluck synthesis), dark/light theming, and full keyboard accessibility.
+
 ## Demo
 🎧 Live demo: https://adonisabboud.github.io/maqam-builder-53edo/
 
@@ -70,7 +72,7 @@ This "Arabic Piano" is designed to be playable immediately, even for users witho
 
 1️⃣ Enable Audio
 
-Click “Audio Enabled” at the top of the page.
+Click “Enable Sound” at the top of the page.
 Browsers require a user gesture before audio can start.
 
 2️⃣ Choose a Maqām
@@ -82,29 +84,35 @@ You can also select the upper jins to explore maqām modulation.
 
 3️⃣ Choose a Tonic (Transposition)
 
-Use the Tonic selector to transpose the entire instrument.
+Open the "Settings & Reference" panel and use the Transposition selector to transpose the entire instrument.
 This applies a global shift in 53-EDO commas and does not distort interval relationships.
 
 Changing the tonic automatically stops any currently held notes to avoid pitch jumps.
 
-4️⃣ Select Sound Type
+4️⃣ Select Timbre
 
 You can choose how the instrument sounds:
 
-Pure sine — clean, analytical tone (good for studying intonation)
+Sine — clean, analytical tone (good for studying intonation)
 
-Sine + harmonics — richer, more instrument-like tone (closer to real strings)
+Harmonic — richer, more instrument-like tone with added partials
+
+Qanun (default) — realistic plucked string synthesis with sharp attack and frequency-dependent decay, modeled after a real qanun
 
 This affects all notes and drones in real time.
 
 5️⃣ Play Notes
 
-You can play notes in two ways:
+You can play notes in three ways:
 
-🖱️ On-screen buttons
+🎻 Qanun strings
 
-Click any note button to hear it.
-Microtonal notes (half-flats) are clearly labeled.
+Click the vertical strings in the Qanun instrument section. Each string represents a note in the current maqām across 2 octaves. Hover to see note name and frequency.
+
+🖱️ Scale note buttons
+
+Click any note in the Scale section below the Qanun to hear it.
+Microtonal notes (half-flats) and the tonic are visually distinguished.
 
 ⌨️ Computer keyboard (English layout required)
 
@@ -123,11 +131,11 @@ Non-Latin layouts will not trigger key events correctly.
 
 6️⃣ Playing Modes
 
-Pluck (short): notes decay naturally after being triggered
+Pluck: notes decay naturally after being triggered (envelope varies by timbre)
 
 Hold: notes sustain while the key/button is held
 
-Latch: clicking a note toggles it on/off (useful for drones or chords)
+Latch (toggle): clicking a note toggles it on/off (useful for drones or chords)
 
 7️⃣ Drones
 
@@ -147,17 +155,22 @@ Studying maqām color and stability
 
 Adjust drone volume independently from the main output.
 
-8️⃣ Stopping All Sound
+8️⃣ Theme
+
+Toggle between dark and light modes using the “Dark” switch. Your preference is saved in local storage.
+
+9️⃣ Stopping All Sound
 
 Press Space or click “Stop All” to immediately silence all notes and drones.
 
 ## 🔊 Audio Engine
 
 - Built using the **Web Audio API**
-- Supports:
-  - pure sine tone
-  - sine + harmonic partials
-- Envelope-shaped pluck synthesis
+- Three timbres:
+  - **Sine** — single oscillator
+  - **Harmonic** — fundamental + 5 upper partials
+  - **Qanun** — 7-partial additive synthesis with per-partial decay curves for realistic pluck
+- Envelope-shaped pluck synthesis with timbre-specific attack/decay profiles
 - Continuous oscillators for held notes and drones
 - Frequency computation happens **after** all comma-space logic
 
@@ -165,22 +178,25 @@ Press Space or click “Stop All” to immediately silence all notes and drones.
 
 ## 🧩 Architecture Overview
 
-index.html → UI structure
-styles.css → Theme + layout
-app.js → Tuning logic, maqām engine, audio engine, interaction
+```
+index.html → UI structure (Qanun instrument, scale grid, controls)
+styles.css → Theme system (dark/light), layout, animations
+app.js     → Tuning logic, maqām engine, audio engine, interaction
+```
 
-
-Key design principle:
+Key design principles:
 > All musical logic operates in **comma-space**.  
-> Frequencies are calculated **only at playback time**.
+> Frequencies are calculated **only at playback time**.  
+> Note display uses **solfège** (Do, Re, Mi, Fa, Sol, La, Si).
 
 ---
 
 ## 🛠 Technologies Used
 
 - Vanilla JavaScript (ES6)
-- Web Audio API
-- HTML5 / CSS3
+- Web Audio API (additive synthesis)
+- HTML5 / CSS3 (custom properties, dark/light theme)
+- Google Fonts (Cormorant Garamond, Outfit, JetBrains Mono)
 - No external frameworks or libraries
 
 ---
