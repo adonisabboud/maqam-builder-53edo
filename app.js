@@ -3,8 +3,8 @@
   // 1) Tuning engine (53-EDO Turkish comma system)
   // ==============================
   const C4 = 260.77;
-  const COMMA = Math.pow(2, 1/53);        // Turkish comma (53-EDO)
-  const HALF_COMMA = Math.sqrt(COMMA);    // 0.5 comma
+  const COMMA = Math.pow(2, 1/53);
+  const HALF_COMMA = Math.sqrt(COMMA);
 
   const PC = {
     "C": 0, "D": 9, "E": 18, "F": 22, "G": 31, "A": 40, "B": 49,
@@ -28,7 +28,7 @@
   };
 
   // ======================
-  // TRANSPOSE LAYER (DEBUG BASE, NO MANDALS)
+  // TRANSPOSE LAYER
   // ======================
   let transposeCommas = 0;
 
@@ -75,28 +75,16 @@
       .replace("Eb", "E♭");
   }
 
-    // ==============================
-    // Solfège display (C D E F G A B -> Do Re Mi Fa Sol La Si)
-    // ==============================
-    const SOLFEGE = {
-      C: "Do",
-      D: "Re",
-      E: "Mi",
-      F: "Fa",
-      G: "Sol",
-      A: "La",
-      B: "Si",
-    };
+  // ==============================
+  // Solfège display
+  // ==============================
+  const SOLFEGE = {
+    C: "Do", D: "Re", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si",
+  };
 
-    function toSolfege(label){
-      // Converts note letters anywhere in the label, keeping accidentals and octave numbers
-      // Examples:
-      // "C4" -> "Do4"
-      // "E♭½ (Bayātī)4" -> "Mi♭½ (Bayātī)4"
-      // "G♭" -> "Sol♭"
-      return label.replace(/\b([A-G])(?=(?:[♭♯]|♭½|½)?\d?\b)/g, (_, p1) => SOLFEGE[p1] || p1);
-    }
-
+  function toSolfege(label){
+    return label.replace(/\b([A-G])(?=(?:[♭♯]|♭½|½)?\d?\b)/g, (_, p1) => SOLFEGE[p1] || p1);
+  }
 
   // ==============================
   // 2) JINS DEFINITIONS
@@ -165,6 +153,35 @@
       return {oscillators, gains};
     }
 
+    if (mode === "qanun") {
+      // Qanun timbre (#10): sharp attack, bright harmonics with fast high-partial decay
+      const partials = [
+        {k: 1, a: 1.00},
+        {k: 2, a: 0.50},
+        {k: 3, a: 0.35},
+        {k: 4, a: 0.20},
+        {k: 5, a: 0.15},
+        {k: 6, a: 0.08},
+        {k: 7, a: 0.04},
+      ];
+      const sumA = partials.reduce((s,p) => s + p.a, 0);
+      for (const p of partials) p.a /= sumA;
+
+      for (const p of partials){
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        g.gain.setValueAtTime(p.a, now);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f * p.k, now);
+        osc.connect(g);
+        g.connect(outGain);
+        oscillators.push(osc);
+        gains.push(g);
+      }
+      return {oscillators, gains};
+    }
+
+    // "harmonic" mode
     const partials = [
       {k: 1, a: 1.00},
       {k: 2, a: 0.25},
@@ -192,16 +209,40 @@
   function playPluck(f){
     ensureAudio();
     const now = audioCtx.currentTime;
+    const mode = document.getElementById('waveSel').value;
     const outGain = audioCtx.createGain();
     outGain.connect(master);
-    outGain.gain.setValueAtTime(0.0001, now);
-    outGain.gain.exponentialRampToValueAtTime(1.0, now + 0.005);
-    outGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
 
-    const {oscillators} = buildOscillators(f, outGain, now);
-    for (const osc of oscillators){
-      osc.start(now);
-      osc.stop(now + 2.3);
+    if (mode === "qanun") {
+      // Qanun pluck: very sharp attack, brighter, shorter decay
+      outGain.gain.setValueAtTime(0.0001, now);
+      outGain.gain.exponentialRampToValueAtTime(1.0, now + 0.002);
+      outGain.gain.exponentialRampToValueAtTime(0.3, now + 0.15);
+      outGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+
+      const {oscillators, gains: partialGains} = buildOscillators(f, outGain, now);
+      // High partials decay faster for realism
+      for (let i = 0; i < partialGains.length; i++){
+        const decay = 0.3 + (i * 0.15);
+        const g = partialGains[i];
+        const startVal = g.gain.value;
+        g.gain.setValueAtTime(startVal, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.0001, startVal * 0.01), now + Math.max(0.2, 1.8 - decay));
+      }
+      for (const osc of oscillators){
+        osc.start(now);
+        osc.stop(now + 2.0);
+      }
+    } else {
+      outGain.gain.setValueAtTime(0.0001, now);
+      outGain.gain.exponentialRampToValueAtTime(1.0, now + 0.005);
+      outGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+
+      const {oscillators} = buildOscillators(f, outGain, now);
+      for (const osc of oscillators){
+        osc.start(now);
+        osc.stop(now + 2.3);
+      }
     }
   }
 
@@ -317,7 +358,8 @@
   const tonicInfo = document.getElementById('tonicInfo');
   const j1Text = document.getElementById('j1Text');
   const j2Text = document.getElementById('j2Text');
-    // ==============================
+
+  // ==============================
   // Theme (light/dark) with persistence
   // ==============================
   const themeToggle = document.getElementById("themeToggle");
@@ -328,12 +370,10 @@
     if (themeToggle) themeToggle.checked = (mode === "dark");
   }
 
-  // Initialize theme
   const savedTheme = localStorage.getItem("theme");
   if (savedTheme) {
     applyTheme(savedTheme);
   } else {
-    // default to OS preference
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     applyTheme(prefersDark ? "dark" : "light");
   }
@@ -344,7 +384,13 @@
     });
   }
 
-
+  // Accessibility: announce state changes to screen readers
+  function srAnnounce(msg){
+    const el = document.getElementById("sr-announcer");
+    if (!el) return;
+    el.textContent = "";
+    requestAnimationFrame(() => { el.textContent = msg; });
+  }
 
   const MID_KEYS  = ["a","s","d","f","g","h","j","k"];
   const BASS_KEYS = ["z","x","c","v","b","n","m"];
@@ -365,6 +411,10 @@
     b.textContent = toSolfege(noteObj.label);
     if (noteObj.isTonic) b.classList.add("tonic");
     if (noteObj.isMicro) b.classList.add("micro");
+
+    const freqLabel = commaToFreq(applyTranspose(noteObj.absCommas)).toFixed(2);
+    b.setAttribute("aria-label", `${toSolfege(noteObj.label)}, ${freqLabel} hertz${noteObj.isTonic ? ", tonic" : ""}${noteObj.isMicro ? ", microtone" : ""}`);
+    b.setAttribute("role", "button");
 
     const f = commaToFreq(applyTranspose(noteObj.absCommas));
     const ratio = f / C4;
@@ -423,13 +473,20 @@
 
   function refreshHeldStyles(){
     for (const [noteKey, btn] of noteButtons.entries()){
-      btn.classList.toggle("holdOn", held.has(noteKey));
+      const isHeld = held.has(noteKey);
+      btn.classList.toggle("holdOn", isHeld);
+      btn.setAttribute("aria-pressed", String(isHeld));
     }
+    if (typeof refreshQanunActive === 'function') refreshQanunActive();
   }
 
   function syncDroneUI(){
-    drone1Btn.classList.toggle("holdOn", drones.has("tonic"));
-    drone2Btn.classList.toggle("holdOn", drones.has("upper"));
+    const tonicOn = drones.has("tonic");
+    const upperOn = drones.has("upper");
+    drone1Btn.classList.toggle("holdOn", tonicOn);
+    drone2Btn.classList.toggle("holdOn", upperOn);
+    drone1Btn.setAttribute("aria-pressed", String(tonicOn));
+    drone2Btn.setAttribute("aria-pressed", String(upperOn));
   }
 
   function buildNotesForJins(jinsName, baseAbsCommas, group, isTonicFirst){
@@ -445,8 +502,6 @@
         const baseName = (group === "L") ? MAQAM[maqamSel.value].tonicName : upperBaseName(MAQAM[maqamSel.value]);
         const label = toSolfege(prettyName(`${(defs.labels[i].startsWith("T") ? baseName : defs.labels[i])}${octaveLabel}`));
         const noteKey = `${group}:${jinsName}:${i}:${sh}`;
-        // Skip raw comma markers (pure numbers)
-        //if (/^\d+(\.\d+)?$/.test(label)) continue;
         res.push({
           label,
           absCommas: abs,
@@ -510,20 +565,9 @@
 
   function buildScaleOneOctave(m, upperJ){
     const OCT = 53;
-    // --- Special case: Ṣabā full scale (force correct 8 notes) ---
-    // We want: D, E♭½(Bayātī), F, G♭, A, B♭, C, D (no F♯)
     if (m.lower === "Saba") {
       const tonic = m.tonicAbs;
-      const rel = [
-        0,                 // D
-        6.0,               // E♭½ (Bayātī)
-        13,                // F
-        17,                // G♭  (IMPORTANT: aligns with Hijaz-on-F G♭)
-        31,                // A
-        35,                // B♭
-        44,                // C
-        OCT                // D octave
-      ];
+      const rel = [0, 6.0, 13, 17, 31, 35, 44, OCT];
       const absList = rel.map(x => tonic + x);
 
       function labelFromAbs(abs){
@@ -538,20 +582,13 @@
         if (close(relPC, PC["A"])) return "A";
         if (close(relPC, PC["B"])) return "B";
 
-        // C is 44 in this system (B - 4)
-        const Cnat = PC["B"] - 4;     // 45? (check) -> but we already catch PC["C"]=0; use fallback below
-        const Bb = PC["B"] - 4;       // B♭ = 45? in your map B=49 so B♭=45
-        const Gb = PC["G"] - 4;       // 27 (enharmonic) - but we are forcing 17 rel-from-tonic; label via fallback too
-
-        // Microtones
         if (close(relPC, MICRO["Eb_half_bayati"])) return "E♭½ (Bayātī)";
 
-        // Flats
         const Eb = PC["D"] + 4;
         const Ab = PC["G"] + 4;
         const Db = PC["C"] + 4;
-        const Gb2 = PC["F"] + 4; // 26
-        const Bb2 = PC["A"] + 4; // 44
+        const Gb2 = PC["F"] + 4;
+        const Bb2 = PC["A"] + 4;
         if (close(relPC, Eb)) return "E♭";
         if (close(relPC, Ab)) return "A♭";
         if (close(relPC, Db)) return "D♭";
@@ -574,7 +611,6 @@
     const upper = JINS[upperJ];
 
     const lowerAbs = lower.offsets.map(o => m.tonicAbs + o);
-
     const upperBase = m.upperBaseAbs;
     const upperAbs = upper.offsets.map(o => upperBase + o);
 
@@ -598,12 +634,8 @@
       if (!uniq.some(y => Math.abs(y-x) < tol)) uniq.push(x);
     }
 
-    
-    // Add leading tone D for Sīkāh when upper jins is Ḥijāz
-    // This affects the FULL SCALE only (not the upper jins itself)
     if (m.lower === "Sikah" && upperJ === "Hijaz") {
-      const D_abs = PC["D"] + OCT; // D inside the same octave window
-
+      const D_abs = PC["D"] + OCT;
       if (D_abs >= m.tonicAbs - tol && D_abs <= m.tonicAbs + OCT + tol) {
         const hasD = uniq.some(x => Math.abs(x - D_abs) < tol);
         if (!hasD) {
@@ -613,7 +645,6 @@
       }
     }
 
-    // your "slice fix" is already included in your current version
     let result;
     if (uniq.length <= 8) {
       result = uniq.slice(0, 8);
@@ -695,8 +726,8 @@
     const m = MAQAM[maqamSel.value];
     const upperJ = upperSel.value;
 
-    j1Text.textContent = `Lower jins: ${m.lower} (tonic ${prettyName(m.tonicName)})`;
-    j2Text.textContent = `Upper jins: ${upperJ} (base ${prettyName(upperBaseName(m))})`;
+    if (j1Text) j1Text.textContent = `Lower jins: ${m.lower} (tonic ${prettyName(m.tonicName)})`;
+    if (j2Text) j2Text.textContent = `Upper jins: ${upperJ} (base ${prettyName(upperBaseName(m))})`;
 
     drone1Btn.textContent = `Drone (tonic: ${prettyName(m.tonicName)})`;
     drone2Btn.textContent = `Drone (upper base: ${prettyName(upperBaseName(m))})`;
@@ -706,7 +737,7 @@
     grid2.innerHTML = "";
 
     const scaleNotes = buildScaleOneOctave(m, upperJ);
-    scaleText.textContent = `Full scale (1 octave): ${m.tonicName} → ${m.tonicName}`;
+    scaleText.textContent = `Full scale (1 octave): ${prettyName(m.tonicName)} → ${prettyName(m.tonicName)}`;
 
     const lowerNotes = buildNotesForJins(m.lower, m.tonicAbs, "L", true);
     const upperNotes = buildNotesForJins(upperJ, m.upperBaseAbs, "U", false);
@@ -732,49 +763,262 @@
 
     lowerNotes.forEach(n => grid1.appendChild(mkNoteCard(n, 1)));
     upperNotes.forEach(n => grid2.appendChild(mkNoteCard(n, 2)));
+
+    // Rebuild qanun visualization
+    buildQanun();
   }
 
+  // ==============================
+  // 6) QANUN VISUALIZATION
+  // ==============================
+  const qanunStringsEl = document.getElementById('qanunStrings');
+  const qanunLabelsEl  = document.getElementById('qanunLabels');
+  const qanunHoverEl   = document.getElementById('qanunHover');
+
+  let qanunNotes = [];
+  let qanunStringEls = [];
+  let qanunLabelEls  = [];
+
+  function buildQanunNotes(){
+    const m = MAQAM[maqamSel.value];
+    const upperJ = upperSel.value;
+    const scaleNotes = buildScaleOneOctave(m, upperJ);
+    const OCT = 53;
+
+    const notes = [];
+    for (let sh = 0; sh <= 1; sh++){
+      for (let i = 0; i < scaleNotes.length; i++){
+        const sn = scaleNotes[i];
+        if (i === scaleNotes.length - 1 && sh === 0) continue;
+        const abs = sn.absCommas + sh * OCT;
+        const oct = 4 + sh;
+        const noteKey = `Q:${i}:${sh}:${abs.toFixed(3)}`;
+        notes.push({
+          absCommas: abs,
+          label: toSolfege(prettyName(`${sn.label}${oct}`)),
+          isTonic: sn.isTonic,
+          isMicro: sn.isMicro,
+          noteKey,
+          octave: sh,
+          scaleIndex: i
+        });
+      }
+    }
+    return notes;
+  }
+
+  // (#6) Map keyboard abs values to qanun note indices for sync
+  function findQanunIndexByAbs(absCommas){
+    const tol = 0.01;
+    for (let i = 0; i < qanunNotes.length; i++){
+      if (Math.abs(applyTranspose(qanunNotes[i].absCommas) - absCommas) < tol) return i;
+    }
+    return -1;
+  }
+
+  function buildQanun(){
+    qanunStringsEl.innerHTML = '';
+    qanunLabelsEl.innerHTML = '';
+    qanunNotes = buildQanunNotes();
+    qanunStringEls = [];
+    qanunLabelEls = [];
+
+    // Find where octave 1 starts for divider (#5)
+    let octaveBoundary = -1;
+    for (let i = 0; i < qanunNotes.length; i++){
+      if (qanunNotes[i].octave === 1 && (i === 0 || qanunNotes[i-1].octave === 0)){
+        octaveBoundary = i;
+        break;
+      }
+    }
+
+    for (let i = 0; i < qanunNotes.length; i++){
+      const n = qanunNotes[i];
+
+      // Insert octave divider (#5)
+      if (i === octaveBoundary){
+        const divS = document.createElement('div');
+        divS.className = 'qanun-octave-divider';
+        qanunStringsEl.appendChild(divS);
+
+        const divL = document.createElement('div');
+        divL.className = 'qanun-label-divider';
+        qanunLabelsEl.appendChild(divL);
+      }
+
+      // String row
+      const row = document.createElement('div');
+      row.className = 'qanun-string';
+      row.setAttribute('data-octave', String(n.octave));
+      row.setAttribute('data-index', String(i));
+      if (n.isTonic) row.classList.add('q-tonic');
+      if (n.isMicro) row.classList.add('q-micro');
+
+      const line = document.createElement('div');
+      line.className = 'qanun-string-line';
+      row.appendChild(line);
+
+      // Pluck animation helper
+      const vibrateString = () => {
+        row.classList.remove('qanun-plucked');
+        void row.offsetWidth;
+        row.classList.add('qanun-plucked');
+        row.classList.add('q-active');
+        setTimeout(() => { if (!held.has(n.noteKey)) row.classList.remove('q-active'); }, 400);
+      };
+
+      // Click handler: pluck mode or latch toggle
+      const playString = () => {
+        const f = commaToFreq(applyTranspose(n.absCommas));
+        if (modeSel.value === 'pluck') {
+          playPluck(f);
+          vibrateString();
+        } else if (modeSel.value === 'hold' && latchEl.checked) {
+          if (held.has(n.noteKey)) {
+            stopHold(n.noteKey);
+          } else {
+            startHold(n.noteKey, f);
+          }
+          refreshHeldStyles();
+          refreshQanunActive();
+        }
+      };
+
+      const holdStart = () => {
+        if (modeSel.value !== 'hold' || latchEl.checked) return;
+        const f = commaToFreq(applyTranspose(n.absCommas));
+        startHold(n.noteKey, f);
+        vibrateString();
+        refreshHeldStyles();
+        refreshQanunActive();
+      };
+      const holdStop = () => {
+        if (modeSel.value !== 'hold' || latchEl.checked) return;
+        stopHold(n.noteKey);
+        refreshHeldStyles();
+        refreshQanunActive();
+      };
+
+      row.addEventListener('click', playString);
+      row.addEventListener('mousedown', (e) => { e.preventDefault(); holdStart(); });
+      row.addEventListener('mouseup', (e) => { e.preventDefault(); holdStop(); });
+      row.addEventListener('mouseleave', holdStop);
+      row.addEventListener('touchstart', (e) => { e.preventDefault(); holdStart(); }, {passive:false});
+      row.addEventListener('touchend', (e) => { e.preventDefault(); holdStop(); }, {passive:false});
+
+      // Hover info (#4)
+      row.addEventListener('mouseenter', () => {
+        const f = commaToFreq(applyTranspose(n.absCommas));
+        const ratio = f / C4;
+        qanunHoverEl.textContent = `${n.label}  —  ${f.toFixed(2)} Hz  |  ratio ${ratio.toFixed(6)}`;
+      });
+      row.addEventListener('mouseleave', () => {
+        if (!held.size) qanunHoverEl.textContent = '';
+      });
+
+      qanunStringsEl.appendChild(row);
+      qanunStringEls.push(row);
+
+      // Label
+      const lbl = document.createElement('div');
+      lbl.className = 'qanun-label';
+      if (n.isTonic) lbl.classList.add('q-tonic-label');
+      if (n.isMicro) lbl.classList.add('q-micro-label');
+      lbl.textContent = n.label;
+      lbl.addEventListener('click', playString);
+
+      // Hover info from label too (#4)
+      lbl.addEventListener('mouseenter', () => {
+        const f = commaToFreq(applyTranspose(n.absCommas));
+        const ratio = f / C4;
+        qanunHoverEl.textContent = `${n.label}  —  ${f.toFixed(2)} Hz  |  ratio ${ratio.toFixed(6)}`;
+      });
+      lbl.addEventListener('mouseleave', () => {
+        if (!held.size) qanunHoverEl.textContent = '';
+      });
+
+      qanunLabelsEl.appendChild(lbl);
+      qanunLabelEls.push(lbl);
+    }
+  }
+
+  function refreshQanunActive(){
+    for (let i = 0; i < qanunNotes.length; i++){
+      const isHeld = held.has(qanunNotes[i].noteKey);
+      qanunStringEls[i].classList.toggle('q-active', isHeld);
+      qanunLabelEls[i].classList.toggle('q-active-label', isHeld);
+    }
+  }
+
+  // (#6) Visually vibrate a qanun string by its index
+  function vibrateQanunByIndex(idx){
+    if (idx < 0 || idx >= qanunStringEls.length) return;
+    const row = qanunStringEls[idx];
+    row.classList.remove('qanun-plucked');
+    void row.offsetWidth;
+    row.classList.add('qanun-plucked');
+    row.classList.add('q-active');
+    setTimeout(() => {
+      if (!held.has(qanunNotes[idx].noteKey)){
+        row.classList.remove('q-active');
+      }
+    }, 400);
+  }
+
+  // ==============================
   // Events
+  // ==============================
   fillMaqam();
   buildTonicUI();
   fillUpper();
   rebuild();
 
-  maqamSel.onchange = () => { fillUpper(); rebuild(); };
-  upperSel.onchange = () => { rebuild(); };
+  maqamSel.onchange = () => { fillUpper(); rebuild(); srAnnounce(`Maqām changed to ${maqamSel.value}`); };
+  upperSel.onchange = () => { rebuild(); srAnnounce(`Upper jins changed to ${upperSel.value}`); };
 
   enableBtn.onclick = async () => {
     ensureAudio();
     if (audioCtx.state === "suspended") await audioCtx.resume();
-    enableBtn.innerHTML = '<span class="statusDot on" id="audioDot"></span>Audio Enabled';
+    enableBtn.innerHTML = '<span class="statusDot on" id="audioDot" aria-hidden="true"></span>Audio Enabled';
+    enableBtn.setAttribute("aria-label", "Audio enabled");
+    srAnnounce("Audio enabled");
   };
 
-  stopBtn.onclick = () => stopAll();
+  stopBtn.onclick = () => { stopAll(); srAnnounce("All notes stopped"); };
 
   vol.oninput = (e) => {
-    volVal.textContent = Number(e.target.value).toFixed(2);
+    const v = Number(e.target.value).toFixed(2);
+    volVal.textContent = v;
+    vol.setAttribute("aria-valuenow", v);
     setMasterVol(parseFloat(e.target.value));
   };
 
   droneVol.oninput = (e) => {
-    droneVolVal.textContent = Number(e.target.value).toFixed(2);
+    const v = Number(e.target.value).toFixed(2);
+    droneVolVal.textContent = v;
+    droneVol.setAttribute("aria-valuenow", v);
     setDroneVol(parseFloat(e.target.value));
   };
 
   drone1Btn.onclick = () => {
     const m = MAQAM[maqamSel.value];
     const f = commaToFreq(applyTranspose(m.tonicAbs));
-    drones.has("tonic") ? stopDrone("tonic") : startDrone("tonic", f);
+    const wasOn = drones.has("tonic");
+    wasOn ? stopDrone("tonic") : startDrone("tonic", f);
     syncDroneUI();
+    srAnnounce(wasOn ? "Tonic drone off" : "Tonic drone on");
   };
 
   drone2Btn.onclick = () => {
     const m = MAQAM[maqamSel.value];
     const f = commaToFreq(applyTranspose(m.upperBaseAbs));
-    drones.has("upper") ? stopDrone("upper") : startDrone("upper", f);
+    const wasOn = drones.has("upper");
+    wasOn ? stopDrone("upper") : startDrone("upper", f);
     syncDroneUI();
+    srAnnounce(wasOn ? "Upper base drone off" : "Upper base drone on");
   };
 
+  // (#6) Keyboard playing with qanun string sync
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     const k = e.key.toLowerCase();
@@ -791,11 +1035,19 @@
     keyDown.add(k);
 
     const holdKey = `K:${k}`;
-    if (document.getElementById('modeSel').value === "pluck") {
+    const qIdx = findQanunIndexByAbs(abs);
+
+    if (modeSel.value === "pluck") {
       playPluck(commaToFreq(abs));
+      vibrateQanunByIndex(qIdx);
     } else {
       startHold(holdKey, commaToFreq(abs));
       refreshHeldStyles();
+      // Light up matching qanun string
+      if (qIdx >= 0){
+        qanunStringEls[qIdx].classList.add('q-active');
+        qanunLabelEls[qIdx].classList.add('q-active-label');
+      }
     }
   });
 
@@ -804,11 +1056,18 @@
     keyDown.delete(k);
     const abs = keyboardAbs.get(k);
     if (abs === undefined) return;
-    if (document.getElementById('modeSel').value !== "hold") return;
+    if (modeSel.value !== "hold") return;
     stopHold(`K:${k}`);
     refreshHeldStyles();
+
+    // (#6) Un-light qanun string
+    const qIdx = findQanunIndexByAbs(abs);
+    if (qIdx >= 0){
+      qanunStringEls[qIdx].classList.remove('q-active');
+      qanunLabelEls[qIdx].classList.remove('q-active-label');
+    }
   });
 
-  document.getElementById('modeSel').onchange = () => { if (document.getElementById('modeSel').value !== "hold") stopAll(); };
-  document.getElementById('latch').onchange = () => { if (!document.getElementById('latch').checked) stopAll(); };
+  modeSel.onchange = () => { if (modeSel.value !== "hold") stopAll(); };
+  latchEl.onchange = () => { if (!latchEl.checked) stopAll(); };
 })();
